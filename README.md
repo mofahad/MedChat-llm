@@ -20,6 +20,8 @@ On macOS/Linux set the same environment variables with `export`. `.env.example` 
 
 The medical CSV needs `Question` and `Answer` columns. Source records are retrieved by question text. Datasets are supplied separately and are not committed. Document provenance, permissions, and freshness before sharing data or reporting real-world findings.
 
+Source provenance defaults to `unverified_supplied_csv` and is shown with each record. Set `MEDICAL_DATA_PROVENANCE`, `HOUSING_DATA_PROVENANCE`, or `CRIME_DATA_PROVENANCE` only when the source has been established; use `synthetic` for generated examples. These labels are declared metadata, not independently verified certifications. Crime retrieval uses only State, County, Motivation Type, and Incident Count; supplemental scores and response times are excluded pending provenance review.
+
 Start the frontend in another terminal:
 
 ```bash
@@ -40,7 +42,7 @@ With Ollama running locally and a model already downloaded, set `OLLAMA_MODEL` t
 python -m unittest test_backend -v
 ```
 
-Seven backend tests cover ranking, provenance, abstention, request validation, missing data, stateless clearing, local CORS, and labeled generation/fallback responses. Real CSV loading and retrieval smoke checks are tracked in `REPAIR_STATUS.md`. These checks are not retrieval-quality benchmarks. Three frontend behavior tests and the production build pass locally. Actual local LLM execution remains pending.
+Eight backend tests cover ranking, provenance, abstention, request validation, missing data, stateless clearing, local CORS, labeled generation/fallback responses, and isolation of multiple corpora. Supplied CSV loading and retrieval smoke checks are tracked in `REPAIR_STATUS.md`. These checks are not retrieval-quality benchmarks. Three frontend behavior tests and the production build pass locally. Actual local LLM execution remains pending.
 
 ## Original notebook
 

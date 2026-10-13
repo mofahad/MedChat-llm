@@ -14,6 +14,7 @@ class RetrievalTests(unittest.TestCase):
         result = self.client.post('/chat', json={'question':'Bloomington apartment'}).json
         self.assertEqual(result['sources'][0]['id'], 'housing:1')
         self.assertEqual(result['mode'], 'tfidf_retrieval')
+        self.assertEqual(result['sources'][0]['provenance'], 'unverified_supplied_csv')
 
     def test_no_match(self):
         result = self.client.post('/chat', json={'question':'zzxyq'}).json
@@ -45,6 +46,13 @@ class RetrievalTests(unittest.TestCase):
             result = self.client.post('/chat', json={'question':'Bloomington apartment'}).json
         self.assertEqual(result['mode'], 'local_llm_unverified')
         self.assertIn('not independently verified', result['reply'])
+
+    def test_corpora_do_not_overwrite_each_other(self):
+        housing = Corpus('housing', [{'id':'housing:1','text':'Bloomington apartment','excerpt':'Housing fixture'}])
+        crime = Corpus('crime', [{'id':'crime:1','text':'Texas crime county','excerpt':'Crime fixture'}])
+        client = create_app({'housing':housing,'crime':crime}, mode='relocation').test_client()
+        result = client.post('/chat', json={'question':'Bloomington apartment and Texas crime'}).json
+        self.assertEqual({row['corpus'] for row in result['sources']}, {'housing','crime'})
 
 if __name__ == '__main__':
     unittest.main()

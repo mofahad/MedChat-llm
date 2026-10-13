@@ -2,7 +2,7 @@
 
 The original notebook is a retrieval and generation experiment using BioMistral-7B, MiniLM embeddings, FAISS, Flask, and React. Historical research claims are retained separately in `HISTORICAL_NOTES.md`. Fine-tuning, comparison scores, and reviewer-model results are not verified by the checked-in execution code.
 
-The supported lightweight backend loads the supplied 16,407-row question-answer CSV and returns retrieved records on CPU. Real-data loading and chat smoke checks pass. Seven backend tests, three frontend behavior tests, and the frontend production build pass. These are functionality checks, not a retrieval-quality or clinical benchmark. Optional local-model generation is tested with stubs for success/fallback labeling; an actual model has not been executed.
+The supported lightweight backend loads the supplied 16,407-row question-answer CSV and returns retrieved records on CPU. CSV loading and chat smoke checks pass. Eight backend tests, three frontend behavior tests, and the frontend production build pass. These are functionality checks, not a retrieval-quality or clinical benchmark. Optional local-model generation is tested with stubs for success/fallback labeling; an actual model has not been executed. Dataset provenance defaults to unverified supplied CSV until its source is documented.
 
 ## Repairs prepared
 
