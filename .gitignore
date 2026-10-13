@@ -1,1 +1,9 @@
 /llm_checks
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+data/
+*.log

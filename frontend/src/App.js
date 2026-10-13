@@ -12,7 +12,7 @@ function App() {
 
   const chatLogRef = useRef(null);
 
-  const Backend_URL = "https://4354-34-16-130-203.ngrok-free.app"
+  const Backend_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:5005";
 
   useEffect(() => {
     if (chatLogRef.current) {
@@ -23,17 +23,16 @@ function App() {
   function handleStart() {
     const aiStart = {
       id: 0,
-      text: "Hello! I'm Zoya, Your medical assistant. How can I assist you today?",
+      text: "Explore medical source records. This prototype does not provide diagnosis or treatment.",
       sender: 'chatgpt'
     };
     setMessages((prevMessages) => [...prevMessages, aiStart]);
   }
 
-  console.log(messages.length);
 
   async function handleSend() {
-    if (isLoading) return; 
-    if (!userInput.trim()) return; 
+    if (isLoading) return;
+    if (!userInput.trim()) return;
 
     const newMessage = {
       id: messages.length + 1,
@@ -47,7 +46,6 @@ function App() {
     setIsLoading(true);
 
     try {
-      console.log('here 1')
       const response = await fetch(`${Backend_URL}/chat`, {
         method: 'POST',
         headers: {
@@ -55,19 +53,17 @@ function App() {
         },
         body: JSON.stringify({ question: userInput })
       });
-      console.log(response)
       const data = await response.json();
-      console.log(data)
+      if (!response.ok) throw new Error(data.error || "Request failed");
       const aiResponse = {
         id: messages.length + 2,
         text: data.reply,
         sender: 'chatgpt'
       };
       setMessages((prevMessages) => [...prevMessages, aiResponse]);
-      console.log("Backend response:", data);
-    
+
     } catch (error) {
-      console.error("Error fetching from backend:", error);
+      setMessages((previous) => [...previous, { id: Date.now(), text: `Request failed: ${error.message}`, sender: "chatgpt" }]);
     }
     setIsLoading(false);
     }
@@ -75,25 +71,24 @@ function App() {
   function handleKeyDown(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      console.log('Enter pressed, sending message...');
       handleSend();
     }
   }
 
   async function handleDelete(e) {
     try {
-      const response = await fetch(`${Backend_URL}/clear-chat`, {
+      await fetch(`${Backend_URL}/clear-chat`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       setMessages([])
-    
+
     } catch (error) {
       console.error("Error deleting chat", error);
     }
-    
+
   }
 
 
@@ -102,7 +97,7 @@ function App() {
   return (
     <div className="App"
     style={{
-      backgroundImage: "url('/images/Background.png')",
+      backgroundImage: "linear-gradient(135deg, #0f172a, #134e4a)",
       backgroundSize: "cover",
       backgroundRepeat: "no-repeat",
       backgroundPosition: "center center",
@@ -122,9 +117,9 @@ function App() {
             height="24"
             fill="none"
             stroke="#ff0000"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             viewBox="0 0 24 24"
           >
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -163,7 +158,7 @@ function App() {
                   <div key={msg.id} className={`chat-message ${msg.sender}`}>
                     <div className="chat-message-center">
                     {msg.sender === 'chatgpt' && (
-                      <img src="/images/logo.webp" alt="Bot Avatar" className="avatar avatar-left" />
+                      <img src="/images/bot.svg" alt="Bot Avatar" className="avatar avatar-left" />
                     )}
                       <div className="message">
                         {msg.sender === 'chatgpt' ? (
@@ -181,7 +176,7 @@ function App() {
                       </div>
 
                       {msg.sender === 'user' && (
-                        <img src="/images/user.png" alt="User Avatar" className="avatar avatar-right" />
+                        <img src="/images/user.svg" alt="User Avatar" className="avatar avatar-right" />
                       )}
                     </div>
                   </div>
@@ -190,7 +185,7 @@ function App() {
                 {isLoading && (
                   <div className="chat-message chatgpt">
                     <div className="chat-message-center">
-                      <img src="/images/logo.webp" alt="Bot Avatar" className="avatar avatar-left" />
+                      <img src="/images/bot.svg" alt="Bot Avatar" className="avatar avatar-left" />
                       <div className="reasoning-loader">
                         Thinking...
                       </div>
@@ -203,13 +198,13 @@ function App() {
                 <div className="chat-input-wrapper">
                   <textarea
                     rows="1"
-                    className="chat-input-textarea"
-                    placeholder="Ask me anything :)"
+                    aria-label="Question" className="chat-input-textarea"
+                    placeholder="Ask about the source records"
                     value={userInput}
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                   />
-                  <button className="chat-send-button" onClick={handleSend}>
+                  <button aria-label="Send question" className="chat-send-button" onClick={handleSend}>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -223,9 +218,9 @@ function App() {
                     >
                       <defs>
                       <linearGradient id="gradient" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="24" y2="0" gradientTransform="rotate(325)">
-                        <stop offset="0%" stop-color="#007bff" />       
-                        <stop offset="50%" stop-color="#00bcd4" />      
-                        <stop offset="100%" stop-color="#a3cfbb" />     
+                        <stop offset="0%" stopColor="#007bff" />
+                        <stop offset="50%" stopColor="#00bcd4" />
+                        <stop offset="100%" stopColor="#a3cfbb" />
                       </linearGradient>
 
                       </defs>
