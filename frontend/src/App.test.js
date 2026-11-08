@@ -1,40 +1,33 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from './App';
+beforeEach(() => { global.fetch = jest.fn(); });
+afterEach(() => { jest.restoreAllMocks(); });
 
-jest.mock('react-type-animation', () => ({
-  TypeAnimation: ({ sequence }) => <span>{typeof sequence[0] === 'string' ? sequence[0] : ''}</span>
-}));
-
-beforeEach(() => {
-  global.fetch = jest.fn();
-});
-afterEach(() => jest.restoreAllMocks());
-
-function startAndAsk() {
-  fireEvent.click(screen.getByText(/Get Started/i));
-  const input = screen.getByRole('textbox');
-  fireEvent.change(input, { target: { value: 'Test source question' } });
-  fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-}
-
-test('shows backend source response', async () => {
-  global.fetch.mockResolvedValue({ ok: true, json: async () => ({ reply: 'Retrieved source records: fixture' }) });
+test('submits to the local backend and displays cited excerpts', async () => {
+  global.fetch.mockResolvedValue({ ok: true, json: async () => ({ reply: '[model] BioMistral project note.', sources: [{ id: 'model', source: 'Archived notebook' }] }) });
   render(<App />);
-  startAndAsk();
-  expect(await screen.findByText('Retrieved source records: fixture')).toBeInTheDocument();
-  expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ question: 'Test source question' });
+  fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
+  fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'What model is used?' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Send question' }));
+  expect(await screen.findByText('[model] BioMistral project note.')).toBeInTheDocument();
+  expect(screen.getByText('[model] Archived notebook')).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith('http://127.0.0.1:5005/chat', expect.objectContaining({ method: 'POST', body: JSON.stringify({ question: 'What model is used?' }) }));
 });
-
-test('shows backend errors instead of a silent failed chat', async () => {
-  global.fetch.mockResolvedValue({ ok: false, json: async () => ({ error: 'Dataset missing' }) });
+test('shows an actionable failure and allows retry', async () => {
+  global.fetch.mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'Unavailable' }) });
   render(<App />);
-  startAndAsk();
-  expect(await screen.findByText('Request failed: Dataset missing')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
+  fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'model' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Send question' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Check that the local backend is running');
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Clear chat' })).toBeEnabled());
+  fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'retry' } });
+  expect(screen.getByRole('button', { name: 'Send question' })).toBeEnabled();
 });
-
-test('shows a network failure', async () => {
-  global.fetch.mockRejectedValue(new Error('Connection unavailable'));
+test('clears messages without a stale remote clear endpoint', () => {
   render(<App />);
-  startAndAsk();
-  expect(await screen.findByText('Request failed: Connection unavailable')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Clear chat' }));
+  expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
+  expect(global.fetch).not.toHaveBeenCalled();
 });

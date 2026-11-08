@@ -1,3 +1,7 @@
+# Earlier draft repair notes
+
+These are preserved notes from the earlier repair session. Historical data-loading counts and audit findings below were not rerun in this update; consult docs/VERIFICATION.md for the current checks.
+
 # Local repair status
 
 The original notebook is a retrieval and generation experiment using BioMistral-7B, MiniLM embeddings, FAISS, Flask, and React. Historical research claims are retained separately in `HISTORICAL_NOTES.md`. Fine-tuning, comparison scores, and reviewer-model results are not verified by the checked-in execution code.

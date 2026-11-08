@@ -1,9 +1,13 @@
-/llm_checks
-.venv/
 __pycache__/
-*.pyc
+.venv/
+node_modules/
+build/
 .env
 .env.*
 !.env.example
-data/
 *.log
+llm_checks/
+*.pyc
+data/*
+!data/demo_notes.json
+*.csv

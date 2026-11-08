@@ -1,28 +1,83 @@
-# Medical source retrieval prototype
+# MedChat — medical LLM research, with a free local source explorer
 
-A local React and Flask prototype with a CPU-friendly retrieval backend. The default path uses TF-IDF lexical retrieval and displays source records. It does not silently simulate an LLM or pretend that retrieval scores establish correctness.
+A collaborative Indiana University course project exploring biomedical language models and retrieval. The runnable path in this checkout is a **source-retrieval demo**: it returns project-note excerpts with citations and abstains when no source matches. It does not load an LLM or generate medical advice.
 
-## Free local setup
+## Problem
 
-Use Python 3.11 or 3.12. No paid API is required.
+Medical LLM research is difficult to review when the interface depends on an old tunnel and the model, data, and measurements are not packaged with the code. This repository separates what can run locally today from the archived research experiment.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements-local.txt
-$env:APP_DOMAIN="medical"
-$env:MEDICAL_CSV="C:\path\to\data.csv"
-$env:PORT="5005"
-python backend.py
+## Approach
+
+- **Runnable local demo:** Python/Flask, deterministic TF-IDF cosine retrieval, explicit source IDs, input validation, and no shared conversation storage.
+- **Archived experiment:** BioMistral-7B, BitsAndBytes NF4, MiniLM embeddings, and FAISS IndexIVFFlat in `LLM Server.ipynb`. This is a different path, with external data and GPU requirements.
+- **Interface repair:** the React client now targets a configurable localhost backend, shows failures, returns source citations, and clears browser-local history.
+
+## Result and evidence
+
+The free local demo is reproducible without API keys, Hugging Face credentials, a GPU, or a model download. Backend and frontend checks cover behavior, not clinical quality.
+
+**No hallucination-reduction, GPU-memory, or production-latency result is established by the artifacts in this checkout.** No trained adapter, held-out medical evaluation set, or production benchmark log is included. See [verification and limits](docs/VERIFICATION.md) and [the measurement plan](docs/MEASUREMENT_PLAN.md).
+
+The [original course report](docs/historical-report.md) is preserved for attribution and history. Its numerical and comparative claims are unverified here and must not be treated as current benchmark results.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Q[Question] --> V[Validate request]
+  N[Bundled project notes or supplied JSON] --> T[TF-IDF cosine index]
+  V --> T
+  T --> M{Matching sources?}
+  M -->|yes| S[Source excerpts and record IDs]
+  M -->|no| A[Explicit abstention]
+  S --> UI[Browser interface]
+  A --> UI
 ```
 
-On macOS/Linux set the same environment variables with `export`. `.env.example` is documentation; the backend does not automatically load it.
+This diagram describes the tested local demo. It does not represent a deployed LLaMA/QLoRA system or a clinical evaluation harness.
 
-The medical CSV needs `Question` and `Answer` columns. Source records are retrieved by question text. Datasets are supplied separately and are not committed. Document provenance, permissions, and freshness before sharing data or reporting real-world findings.
+## How to run
 
-Source provenance defaults to `unverified_supplied_csv` and is shown with each record. Set `MEDICAL_DATA_PROVENANCE`, `HOUSING_DATA_PROVENANCE`, or `CRIME_DATA_PROVENANCE` only when the source has been established; use `synthetic` for generated examples. These labels are declared metadata, not independently verified certifications. Crime retrieval uses only State, County, Motivation Type, and Incident Count; supplemental scores and response times are excluded pending provenance review.
+Use Python 3.12. From a fresh clone:
 
-Start the frontend in another terminal:
+```bash
+git clone https://github.com/mofahad/MedChat-llm.git
+cd MedChat-llm
+python -m venv .venv
+```
+
+Activate the environment:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+```
+
+```bash
+# macOS / Linux
+source .venv/bin/activate
+```
+
+Then:
+
+```bash
+python -m pip install -r requirements.txt
+python app.py
+```
+
+Open **http://127.0.0.1:5005**. Ask “What model does the notebook use?” or select an example question. The bundled corpus contains project implementation notes, not patient records.
+
+To use your own permitted source notes, provide a JSON list of records with nonempty `id`, `title`, `text`, and `source` strings:
+
+```bash
+python app.py --corpus path/to/notes.json
+```
+
+The server binds to localhost and does not save queries. Retrieval similarity is a lexical ranking signal, not a probability of correctness.
+
+### Optional React interface
+
+Keep the backend running, then:
 
 ```bash
 cd frontend
@@ -30,22 +85,45 @@ npm ci
 npm start
 ```
 
-The frontend defaults to `http://127.0.0.1:5005`. Set `REACT_APP_API_URL` to change it. Local CORS allows only localhost frontend origins. The backend binds to localhost, stores no conversation history, and reports loaded corpus sizes at `/health`.
+Open http://localhost:3000. The backend defaults to http://127.0.0.1:5005. Set `REACT_APP_API_URL` before starting React to change it; `frontend/.env.example` shows the format. No tunnel is needed.
 
-## Optional local generation
-
-With Ollama running locally and a model already downloaded, set `OLLAMA_MODEL` to that model name. The backend sends retrieved excerpts to `http://127.0.0.1:11434/api/generate`. Generated responses are marked `local_llm_unverified`. If generation fails, it returns source records with an explicit fallback message. Generated summaries have not been validated in this repair pass.
-
-## Tests and validation
+## Checks
 
 ```bash
-python -m unittest test_backend -v
+python -m unittest test_app -v
+cd frontend
+npm test -- --watchAll=false --runInBand
+npm run build
 ```
 
-Eight backend tests cover ranking, provenance, abstention, request validation, missing data, stateless clearing, local CORS, labeled generation/fallback responses, and isolation of multiple corpora. Supplied CSV loading and retrieval smoke checks are tracked in `REPAIR_STATUS.md`. These checks are not retrieval-quality benchmarks. Three frontend behavior tests and the production build pass locally. Actual local LLM execution remains pending.
+The GitHub Actions workflow runs regression checks on pushes and pull requests. It is **not** a clinical evaluation score badge: no runnable medical answer-evaluation harness was present in the original checkout, and none is being simulated.
 
-## Original notebook
+### Preserved external-data backend and notebook repairs
 
-The original notebook preserves the transformer/FAISS experiment. It has separate hardware and data requirements and is not the lightweight startup path. `REPAIR_STATUS.md` documents its repaired bugs and remaining limitations. `HISTORICAL_NOTES.md` preserves earlier descriptions without treating unsupported measurements as verified results.
+The earlier repair's `backend.py`, `requirements-local.txt`, and `test_backend.py` are preserved for a supplied Question/Answer CSV. Install `requirements-local.txt`, set `MEDICAL_CSV` to a permitted CSV, set `APP_DOMAIN=medical`, and run `python backend.py`. The React client can use this same local API. Its data path is optional; no external CSV is included or required for `python app.py`.
 
-This educational prototype is not a diagnostic or treatment system and has no clinical validation.
+To run all backend checks, install `requirements-local.txt` and run `python -m unittest test_app test_backend test_medical_csv -v`. The original notebook's variable, model-placement, source-index, shared-history, logging, and credential-cleanup repairs are also preserved. They are static repairs; end-to-end GPU inference remains unvalidated. Earlier repair notes in `REPAIR_STATUS.md` describe prior-session observations, not new measurements from this update.
+
+## See it work
+
+![Actual local source-retrieval demonstration](docs/demo.gif)
+
+This recording shows the implemented source explorer searching bundled project notes. It does not show LLM inference.
+
+## Live demo
+
+There is no verified hosted demo yet. Run the local demo above, or follow the [prepared manual hosting steps](docs/HOSTING.md) later. Those steps need a browser account, not an API key; the Docker/hosted path has not been tested here. Do not reuse historical temporary tunnel links. The existing notebook requires additional data, compatible GPU software, and model artifacts; that path has not been revalidated. No old credential has been renewed or assumed valid.
+
+## Tech stack
+
+Python · Flask · TF-IDF/cosine retrieval · React · unittest · React Testing Library
+
+Archived research: PyTorch · Transformers · BioMistral · BitsAndBytes · SentenceTransformers · FAISS
+
+## Team and attribution
+
+Original project repository: [Ramcharxn/medchat-llm](https://github.com/Ramcharxn/medchat-llm).
+
+The original report credits **Ramcharan Suresh, Prathibha Gandikota Bhaskar, Mohammed Fahad Shahul Hameed, and Sushil Amalan John Moses**. It attributes research design, frontend and Gradio work, benchmark experiments, and report writing to Fahad. Preserve the full contribution statement in the archived report; this is a team project.
+
+Contact: [md.fahad.sh@gmail.com](mailto:md.fahad.sh@gmail.com) · [GitHub](https://github.com/mofahad)
